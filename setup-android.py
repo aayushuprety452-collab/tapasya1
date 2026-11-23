@@ -298,13 +298,13 @@ super.onCreate(savedInstanceState);
 }
 """
 for fname, content in [
-("AlarmActivity.java", alarm_activity),
-("AlarmReceiver.java", alarm_receiver),
-("TapasyaAlarmPlugin.java", plugin_java),
-("MainActivity.java", main_activity),
+    ("AlarmActivity.java", alarm_activity),
+    ("AlarmReceiver.java", alarm_receiver),
+    ("TapasyaAlarmPlugin.java", plugin_java),
+    ("MainActivity.java", main_activity),
 ]:
-with open(os.path.join(pkg_dir, fname), "w") as f:
-f.write(content)
+    with open(os.path.join(pkg_dir, fname), "w") as f:
+        f.write(content)
 manifest_path = "android/app/src/main/AndroidManifest.xml"
 with open(manifest_path, "r") as f:
 xml = f.read()
