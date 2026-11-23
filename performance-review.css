@@ -1,0 +1,401 @@
+/* ==========================================================================
+   TAPASYA v2 — DEDICATED PERFORMANCE REVIEW NOTION DATABASE STYLES
+   ========================================================================== */
+
+/* Year Folder Pill Switcher */
+.perf-year-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.perf-year-tabs {
+  display: inline-flex;
+  background: var(--bg-sidebar);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  gap: 4px;
+}
+
+.perf-year-tab {
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.perf-year-tab:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+
+.perf-year-tab.active {
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Main Notion Database Shell */
+.perf-notion-shell {
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Top Database Header Bar (Matches Notion "Performance review ⌄" Bar) */
+.perf-db-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.perf-db-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.perf-db-badge-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.perf-db-title {
+  font-size: 15.5px;
+  font-weight: 750;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
+}
+
+.perf-db-chevron {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Refresh Button */
+.perf-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.perf-refresh-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-soft);
+}
+
+.perf-refresh-btn:active {
+  transform: scale(0.97);
+}
+
+/* Opened Month Page Hero Banner (Matches Notion August / November Subpage) */
+.perf-month-hero {
+  padding: 20px 22px 18px;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.perf-back-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.15s ease;
+}
+
+.perf-back-crumb:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.perf-month-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.perf-month-heading {
+  font-size: 26px;
+  font-weight: 850;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+/* Property Summary Strip (Monthly Progress + Progress Bar + Ring) */
+.perf-prop-strip {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 14px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.perf-prop-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.perf-prop-key {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.perf-prop-val {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.perf-progress-track {
+  width: 90px;
+  height: 7px;
+  background: var(--border-color);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.perf-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0f7b6c, #10b981);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+/* Notion Grid Table */
+.perf-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.perf-notion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.perf-notion-table thead th {
+  background: var(--bg-sidebar);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.perf-notion-table thead th:last-child,
+.perf-notion-table tbody td:last-child {
+  border-right: none;
+}
+
+.perf-col-icon {
+  display: inline-block;
+  margin-right: 6px;
+  opacity: 0.7;
+  font-size: 11.5px;
+}
+
+.perf-notion-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.perf-notion-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.perf-notion-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.perf-notion-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Name Cell + OPEN Pill */
+.perf-name-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 185px;
+}
+
+.perf-page-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  color: var(--text-main);
+}
+
+.perf-doc-badge {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.perf-open-btn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.perf-open-btn:hover {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+  transform: translateY(-1px);
+}
+
+/* Score & Missed-Day Status Pills */
+.perf-score-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+}
+
+.perf-zero-pill {
+  background: var(--pill-red-bg);
+  color: var(--accent-red);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.perf-pass-pill {
+  background: rgba(15, 123, 108, 0.13);
+  color: var(--accent-green);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.perf-mid-pill {
+  background: var(--pill-yellow-bg);
+  color: #b45309;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.perf-date-text {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.perf-note-editable {
+  display: block;
+  min-width: 160px;
+  min-height: 20px;
+  outline: none;
+  color: var(--text-main);
+  line-height: 1.45;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.perf-note-editable:focus {
+  background: var(--bg-main);
+  box-shadow: 0 0 0 2px var(--accent-blue-soft);
+}
+
+.perf-note-editable:empty::before {
+  content: "Write reflection...";
+  color: var(--text-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Circular SVG Ring */
+.perf-ring-svg {
+  width: 21px;
+  height: 21px;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+}
+
+.perf-ring-svg circle {
+  fill: none;
+  stroke-width: 3.3;
+}
+
+.perf-ring-svg .ring-track {
+  stroke: var(--border-strong);
+}
+
+.perf-ring-svg .ring-val {
+  stroke: #0f7b6c;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s ease;
+}

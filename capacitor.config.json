@@ -1,0 +1,12 @@
+{
+  "appId": "com.tapasya.workspace",
+  "appName": "TAPASYA",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#2383E2"
+    }
+  }
+}

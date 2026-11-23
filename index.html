@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>TAPASYA — Offline Execution Workspace</title>
+    <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="performance-review.css" />
+</head>
+<body>
+  <!-- ==================== WELCOME ONBOARDING OVERLAY ==================== -->
+  <div id="welcomeScreen" class="welcome-overlay">
+    <div class="welcome-card">
+      <div class="welcome-eyebrow">OFFLINE PERSONAL SYSTEM</div>
+      <h1 class="welcome-logo">TAPASYA</h1>
+      <p class="welcome-subtitle">
+        Zero-distraction execution, point-based discipline, and lock-screen accountability—stored 100% locally on your device.
+      </p>
+
+      <div class="welcome-folder-box">
+        <div class="folder-box-title">📁 Local Storage & Backup Folder</div>
+        <p class="folder-box-desc">
+          Select a directory on your device to create your dedicated <strong>Tapasya</strong> folder for automatic offline backups.
+        </p>
+        <button class="btn-outline-full" onclick="setupTapasyaStorageFolder()">
+          📂 Select / Create "Tapasya" Storage Folder
+        </button>
+        <div id="welcomeFolderStatus" class="folder-status-pill">Using internal app storage (Tap to link external folder)</div>
+      </div>
+
+      <button class="btn-primary-large" onclick="enterWorkspace()">
+        Next — Enter Workspace →
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN APP SHELL ==================== -->
+  <div id="appShell" class="app-layout hidden">
+    <!-- Mobile Top Bar (Clean: Menu, TAPASYA Brand, Settings Gear) -->
+    <header class="mobile-header">
+      <button id="menuToggle" class="icon-btn" aria-label="Open Templates">☰</button>
+      <div class="mobile-brand-wrap">
+        <span class="brand-wordmark">TAPASYA</span>
+        <span class="mobile-sub-crumb" id="mobilePageTitle">Nuke XYX</span>
+      </div>
+      <button class="icon-btn settings-gear-btn" onclick="openSettingsTab()" aria-label="Settings">⚙️</button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="brand-wordmark">TAPASYA</span>
+        <div class="sidebar-header-actions">
+          <button class="icon-btn settings-gear-btn" onclick="openSettingsTab()" title="Settings">⚙️</button>
+          <button id="closeSidebar" class="icon-btn mobile-only" aria-label="Close Menu">✕</button>
+        </div>
+      </div>
+
+      <div class="nav-section-label">TEMPLATES</div>
+      <nav class="nav-list">
+        <button class="nav-item active" data-tab="nuke-xyx">
+          <span class="nav-icon">↓</span> Nuke XYX
+        </button>
+        <button class="nav-item" data-tab="nuke-goal">
+          <span class="nav-icon">◎</span> Nuke a Goal
+        </button>
+        <button class="nav-item" data-tab="deadlines">
+          <span class="nav-icon">⧖</span> GOD - Deadlines
+        </button>
+        <button class="nav-item" data-tab="drone-view">
+          <span class="nav-icon">◈</span> Drone view and Progress
+        </button>
+        <button class="nav-item" data-tab="atomic-core">
+          <span class="nav-icon">❖</span> Atomic core
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <small id="saveIndicator">Saved locally in Tapasya</small>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <main class="main-content">
+      <!-- ==================== 1. NUKE XYX ==================== -->
+      <section id="tab-nuke-xyx" class="page-section active">
+        <div class="page-header-block">
+          <h1 class="page-title" contenteditable="true" data-bind="nukeToday.title">Nuke XYX</h1>
+          <blockquote class="hero-quote" contenteditable="true" data-bind="nukeToday.quote">
+            If you don’t subtract and schedule, you will forget where time went. If you do, all your dreams will come true.
+          </blockquote>
+        </div>
+
+        <details class="notion-toggle" open>
+          <summary class="toggle-summary">
+            <span class="pill-badge pill-red">How to operate</span>
+          </summary>
+          <ul class="bullet-list" contenteditable="true" data-bind="nukeToday.instructions">
+            <li>Whenever you wake up, think <strong>how many hours do you have</strong> before you have to do something (sleep, class, meeting).</li>
+            <li>Divide the tasks, assign exact time, and start doing the first.</li>
+            <li><strong>Formula:</strong> Hours left × important tasks × start doing = phone disappears.</li>
+            <li><em>"I will work"</em> — at what time? what precise task? for how long?</li>
+          </ul>
+        </details>
+
+        <div class="two-col-grid">
+          <div class="card-block">
+            <div class="card-block-header">
+              <span class="pill-badge pill-orange">Things to do</span>
+            </div>
+            <div id="nukeTodayTodoList" class="seamless-checklist"></div>
+          </div>
+
+          <div class="card-block">
+            <div class="card-block-header">
+              <span class="pill-badge pill-yellow">Weekly important</span>
+            </div>
+            <div id="nukeTodayWeeklyList" class="seamless-checklist"></div>
+          </div>
+        </div>
+
+        <div class="section-header-row">
+          <h2>Scheduled Tasks & Alarms</h2>
+          <button class="btn-primary" onclick="addTodayTaskRow()">+ New Task</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Alarm Time</th>
+                <th>Alarm</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="nukeTodayTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== 2. NUKE A GOAL ==================== -->
+      <section id="tab-nuke-goal" class="page-section">
+        <div class="page-header-block">
+          <h1 class="page-title" contenteditable="true" data-bind="nukeGoal.title">Nuke a Goal</h1>
+        </div>
+
+        <div class="goal-meta-card">
+          <div class="meta-row">
+            <span class="meta-label">Deadline</span>
+            <button class="picker-trigger-btn" id="goalDeadlineDisplayBtn" onclick="openCustomPicker('goalDeadline')">
+              Select Date & Time
+            </button>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Objective</span>
+            <span class="editable-inline" contenteditable="true" data-bind="nukeGoal.objective">xyz needs to be achieved/nuked before deadline.</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Must do</span>
+            <span class="editable-inline" contenteditable="true" data-bind="nukeGoal.mustDo">The tasks of the current day must be absolutely clear and defined a day before.</span>
+          </div>
+        </div>
+
+        <div class="flip-widget">
+          <div class="flip-label">TIME LEFT</div>
+          <div class="flip-boxes">
+            <div class="flip-unit"><div class="flip-num" id="goalDays">00</div><span>DAYS</span></div>
+            <div class="flip-unit"><div class="flip-num" id="goalHours">00</div><span>HOURS</span></div>
+            <div class="flip-unit"><div class="flip-num" id="goalMins">00</div><span>MINUTES</span></div>
+            <div class="flip-unit"><div class="flip-num" id="goalSecs">00</div><span>SECONDS</span></div>
+          </div>
+        </div>
+
+        <details class="notion-toggle">
+          <summary class="toggle-summary">✅ What works (do more)</summary>
+          <div class="toggle-body" contenteditable="true" data-bind="nukeGoal.whatWorks">Click to type what strategies are working...</div>
+        </details>
+        <details class="notion-toggle">
+          <summary class="toggle-summary">❌ What doesn't work (needs to be changed)</summary>
+          <div class="toggle-body" contenteditable="true" data-bind="nukeGoal.whatDoesnt">Click to type distractions or habits to eliminate...</div>
+        </details>
+
+        <div class="section-header-row">
+          <h2>Tasks today</h2>
+          <button class="btn-primary" onclick="addGoalTask('today')">+ Add Task</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>List the Tasks</th>
+                <th>Date</th>
+                <th>Alarm Time</th>
+                <th>Alarm</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="goalTodayBody"></tbody>
+          </table>
+        </div>
+
+        <div class="planning-prompts">
+          <h3>When are you going to do this next?</h3>
+          <p class="answer-box" contenteditable="true" data-bind="nukeGoal.whenNext">Answer: Click here to type exact time...</p>
+          <h3>What are you going to do next?</h3>
+          <p class="answer-box" contenteditable="true" data-bind="nukeGoal.whatNext">Answer: Click here to define tomorrow's exact task...</p>
+        </div>
+
+        <div class="section-header-row">
+          <h2>Tomorrow</h2>
+          <button class="btn-primary" onclick="addGoalTask('tomorrow')">+ Add Task</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Alarm Time</th>
+                <th>Alarm</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="goalTomorrowBody"></tbody>
+          </table>
+        </div>
+
+        <div class="callout-box">
+          <h4>Instructions</h4>
+          <ul>          <ul>
+            <li>Put an <span class="text-red">alarm clock</span> on the answer. This creates a circle that you cannot quit.</li>
+            <li>The answer cannot be left blank.</li>
+            <li>Define precisely what you are going to do tomorrow <strong>right now</strong>. Define the task, at what time, and put an alarm at that time.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ==================== 3. GOD - DEADLINES ==================== -->
+      <section id="tab-deadlines" class="page-section">
+        <div class="page-header-block">
+          <h1 class="page-title">GOD - Deadlines</h1>
+        </div>
+
+        <div id="nearestDeadlineBanner" class="banner-nearest">
+          <div class="banner-tag">NEAREST UPCOMING DEADLINE</div>
+          <h2 id="nearestTaskName">No active deadlines</h2>
+          <div class="banner-countdown" id="nearestCountdown">--d --h --m --s remaining</div>
+        </div>
+
+        <div id="overdueDeadlineBanner" class="banner-overdue hidden">
+          <div class="banner-tag">DEADLINE CROSSED — OVERDUE</div>
+          <div id="overdueListText"></div>
+        </div>
+
+        <div class="section-header-row">
+          <h2>Deadlines Database</h2>
+          <button class="btn-primary" onclick="addDeadlineRow()">+ New Deadline</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="notion-table">
+            <thead>
+              <tr>
+                <th>Task / Milestone</th>
+                <th>Assigned Deadline</th>
+                <th>Time Remaining</th>
+                <th>Alarm</th>
+                <th>Done</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="deadlinesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== 4. DRONE VIEW AND PROGRESS ==================== -->
+      <section id="tab-drone-view" class="page-section">
+        <div class="page-header-block">
+          <h1 class="page-title">Drone view and Progress</h1>
+          <ul class="power-mantra">
+            <li>BECOME INCREDIBLY RICH.</li>
+            <li>BECOME INCREDIBLY MUSCULAR.</li>
+            <li>BECOME INCREDIBLY INTELLIGENT.</li>
+          </ul>
+          <p class="power-sub">UNTIL THEN DO NOTHING BUT EVERYTHING IT TAKES TO BECOME THE ABOVE. <strong>FOR THE FIRST TIME IN YOUR LIFE, USE POWER. Goal: achieve more than 50% every week.</strong></p>
+        </div>
+
+        <div class="score-dashboard">
+          <div class="score-card">
+            <span class="score-label">Selected Day Completion</span>
+            <strong class="score-val" id="droneTodayDisplay">0 / 0 Tasks (0%)</strong>
+          </div>
+          <div class="score-card">
+            <span class="score-label">Weekly Pillar Consistency</span>
+            <strong class="score-val" id="droneWeeklyDisplay">0% (Target: >50%)</strong>
+          </div>
+        </div>
+
+        <div class="day-pills" id="droneDaySelector"></div>
+        <div class="card-block" id="droneActiveDayContainer"></div>
+
+               <div class="section-header-row" style="margin-top: 32px;">
+          <h2>Performance Review Database</h2>
+        </div>
+        <div id="dronePerfWorld"></div>
+
+      </section>
+
+      <!-- ==================== 5. ATOMIC CORE ==================== -->
+      <section id="tab-atomic-core" class="page-section">
+        <div class="page-header-block">
+          <h1 class="page-title">Atomic core</h1>
+          <ul class="bullet-list">
+            <li><strong>1 day = 20 points.</strong></li>
+            <li><span class="text-red">PICK THE MOST IMPORTANT THING RIGHT NOW. One thing.</span></li>
+            <li>AT MOST, HAVE 2 CATEGORIES FOR POINTS EACH DAY.</li>
+            <li>Assign a week before which subjects/tasks you are doing on each day. Divide points from hard to easy.</li>
+          </ul>
+        </div>
+
+        <div class="score-dashboard">
+          <div class="score-card">
+            <span class="score-label">Selected Day Atomic Score</span>
+            <strong class="score-val" id="atomicTodayDisplay">0 / 20 pts</strong>
+          </div>
+          <div class="score-card">
+            <span class="score-label">Weekly Atomic Average</span>
+            <strong class="score-val" id="atomicWeeklyDisplay">0% (Target: >50%)</strong>
+          </div>
+        </div>
+
+        <div class="day-pills" id="atomicDaySelector"></div>
+        <div class="card-block" id="atomicActiveDayContainer"></div>
+
+                <div class="section-header-row" style="margin-top: 32px;">
+          <h2>Performance Review Database</h2>
+        </div>
+        <div id="atomicPerfWorld"></div>
+
+      </section>
+
+      <!-- ==================== 6. SETTINGS ==================== -->
+      <section id="tab-settings" class="page-section">
+        <div class="page-header-block">
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Configure workspace appearance, alarm melodies, native lock-screen permissions, and your local Tapasya backup folder.</p>
+        </div>
+
+        <!-- Alarm Melodies & Custom Track -->
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <h3>Alarm Sound & Vibration</h3>
+            <button class="btn-primary" onclick="testAlarmNow()">Test Alarm</button>
+          </div>
+          <p class="settings-desc">Select a melodic alarm tone or upload your own audio track from device storage.</p>
+
+                    <div class="ringtone-list" id="ringtoneList">
+            <div class="ringtone-item selected" data-tone="morning_glory" onclick="selectAlarmTone('morning_glory')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Morning Glory (Default)</strong>
+                  <small>Classic uplifting harp & marimba dawn melody</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('morning_glory')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="morning_flower" onclick="selectAlarmTone('morning_flower')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Morning Flower</strong>
+                  <small>Gentle bright acoustic chime & flute motif</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('morning_flower')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="homecoming" onclick="selectAlarmTone('homecoming')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Homecoming</strong>
+                  <small>Warm nostalgic piano & strings wake-up tone</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('homecoming')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="fireflies" onclick="selectAlarmTone('fireflies')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Fireflies</strong>
+                  <small>Synth-pop bell arpeggio inspired by Owl City</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('fireflies')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="horizon" onclick="selectAlarmTone('horizon')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Over The Horizon</strong>
+                  <small>Ascending orchestral synth chime</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('horizon')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="betteroff" onclick="selectAlarmTone('betteroff')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Better Off Alone</strong>
+                  <small>High-energy Eurodance lead riff</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('betteroff')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="insomnia" onclick="selectAlarmTone('insomnia')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong>Insomnia</strong>
+                  <small>Deep pizzicato & urgent synth pluck</small>
+                </div>
+              </div>
+              <button class="btn-preview" onclick="event.stopPropagation(); previewTone('insomnia')">▶ Preview</button>
+            </div>
+
+            <div class="ringtone-item" data-tone="custom" onclick="selectAlarmTone('custom')">
+              <div class="ringtone-info">
+                <span class="radio-dot"></span>
+                <div>
+                  <strong id="customTrackTitle">Custom Audio Track</strong>
+                  <small id="customTrackSub">No local audio file selected yet</small>
+                </div>
+              </div>
+              <div class="btn-group">
+                <label class="btn-preview file-btn" onclick="event.stopPropagation()">
+                  Choose File
+                  <input type="file" id="customAudioUpload" accept="audio/*" onchange="uploadCustomAlarmTrack(event)" hidden />
+                </label>
+                <button class="btn-preview" onclick="event.stopPropagation(); previewTone('custom')">▶ Play</button>
+              </div>
+            </div>
+          </div>
+
+
+          <div class="settings-divider-row">
+            <label class="switch-label">
+              <input type="checkbox" id="vibrateToggle" checked onchange="toggleVibrationSetting(this.checked)" />
+              <span>Continuous Phone Vibration on Alarm</span>
+            </label>
+            <div class="volume-control">
+              <span>Volume</span>
+              <input type="range" id="alarmVolumeSlider" min="0.2" max="1" step="0.05" value="1" onchange="setAlarmVolume(this.value)" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Lock-Screen Alarm Permissions -->
+        <div class="settings-card">
+          <h3>Lock-Screen Alarm & System Permissions</h3>
+          <p class="settings-desc">Allow TAPASYA to display full-screen alarms over your lock screen and open Android's system Alarm & Notification settings.</p>
+          <div class="btn-group">
+            <button class="btn-primary" onclick="openSystemAlarmSettings()">Open Phone Alarm & Notification Settings</button>
+          </div>
+          <small id="permStatusText" class="status-note"></small>
+        </div>
+
+               <!-- Local Tapasya Storage Folder -->
+        <div class="settings-card">
+          <h3>Local "Tapasya" Storage Folder</h3>
+          <p class="settings-desc">Automatically mirror your workspace data into a real <strong>Tapasya</strong> folder on your device storage.</p>
+          <div class="btn-group">
+            <button class="btn-primary" onclick="setupTapasyaStorageFolder()">📂 Select / Create "Tapasya" Folder</button>
+            <button class="btn-secondary" onclick="syncToTapasyaFolder(true)">Save Backup Now</button>
+            <label class="btn-secondary file-btn">
+              Restore from Backup File
+              <input type="file" id="importFileInput" accept=".json" onchange="importBackup(event)" hidden />
+            </label>
+          </div>
+          <small id="settingsFolderStatus" class="status-note"></small>
+        </div>
+
+        <!-- Appearance -->
+        <div class="settings-card">
+          <h3>Appearance</h3>
+          <p class="settings-desc">Choose between clean daylight mode and low-glare dark mode.</p>
+          <div class="btn-group">
+            <button class="btn-secondary" id="themeLightBtn" onclick="setTheme('light')">☀️ Light Mode</button>
+            <button class="btn-secondary" id="themeDarkBtn" onclick="setTheme('dark')">🌙 Dark Mode</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Custom Mobile-Grade Date & Time Picker Modal -->
+  <div id="customPickerModal" class="modal-backdrop hidden">
+    <div class="picker-sheet">
+      <div class="picker-header">
+        <button class="picker-cancel" onclick="closeCustomPicker()">Cancel</button>
+        <strong id="pickerModalTitle">Set Alarm Time</strong>
+        <button class="picker-done" onclick="confirmCustomPicker()">Done</button>
+      </div>
+
+      <div id="pickerDateSection" class="picker-date-row">
+        <label>Date</label>
+        <input type="date" id="pickerDateInput" class="styled-date-box" />
+      </div>
+
+      <div id="pickerTimeSection" class="clock-dial-grid">
+        <div class="wheel-col">
+          <label>HOUR</label>
+          <select id="pickerHourSelect" size="5" class="time-wheel"></select>
+        </div>
+        <div class="wheel-sep">:</div>
+        <div class="wheel-col">
+          <label>MINUTE</label>
+          <select id="pickerMinSelect" size="5" class="time-wheel"></select>
+        </div>
+        <div class="wheel-col">
+          <label>AM / PM</label>
+          <select id="pickerAmPmSelect" size="2" class="time-wheel ampm-wheel">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Full-Screen Pitch-Black Lock-Screen Alarm UI (Matches Reference Screenshot) -->
+  <div id="alarmModal" class="alarm-ringing-overlay hidden" style="background:#000000;">
+    <div style="width:100%; max-width:380px; height:88dvh; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:36px 20px; text-align:center;">
+      <div style="margin-top:12px;">
+        <div style="font-size:12px; color:#8e8e93; letter-spacing:1.2px; margin-bottom:6px;">TAPASYA ALARM</div>
+        <div id="alarmModalClock" style="font-size:74px; font-weight:300; color:#d1d1d6; letter-spacing:-2px; line-height:1;">06:00</div>
+      </div>
+
+      <div style="width:100%; display:flex; flex-direction:column; align-items:center; gap:20px;">
+        <h2 id="alarmModalTitle" style="font-size:28px; font-weight:700; color:#ffffff; margin:0;">Work</h2>
+        <p id="alarmModalDesc" class="hidden">Time to execute</p>
+        <button onclick="snoozeAlarm()" style="width:210px; height:58px; border-radius:999px; border:none; background:#ffb340; color:#ffffff; font-size:19px; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(255,179,64,0.35);">Snooze</button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <button onclick="stopAlarm()" style="width:128px; height:48px; border-radius:999px; border:none; background:#2c2c2e; color:#ffffff; font-size:16px; font-weight:600; cursor:pointer;">Stop</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>
