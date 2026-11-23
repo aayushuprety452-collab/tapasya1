@@ -305,23 +305,27 @@ for fname, content in [
 ]:
     with open(os.path.join(pkg_dir, fname), "w") as f:
         f.write(content)
+
 manifest_path = "android/app/src/main/AndroidManifest.xml"
 with open(manifest_path, "r") as f:
-xml = f.read()
-perms = """
+    xml = f.read()
 
+perms = """<uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />"""
 
+components = """    <activity android:name=".AlarmActivity" android:exported="true" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleInstance" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+        <receiver android:name=".AlarmReceiver" android:enabled="true" android:exported="true" />
+    </application>"""
 
-
-
-
-
-
-"""
-components = """    
-
-"""
-xml = xml.replace('', perms)
-xml = xml.replace('', components)
+xml = xml.replace('<uses-permission android:name="android.permission.INTERNET" />', perms)
+xml = xml.replace('</application>', components)
 with open(manifest_path, "w") as f:
-f.write(xml)
+    f.write(xml)
