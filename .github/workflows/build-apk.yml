@@ -1,0 +1,51 @@
+name: Build TAPASYA APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Prepare Web Assets and Install Capacitor
+        run: |
+          mkdir -p www
+          cp index.html style.css performance-review.css app.js www/
+          npm install --legacy-peer-deps
+
+      - name: Add Android Platform and Sync
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Configure Native Lock-Screen Alarm and Melodies
+        run: python3 setup-android.py
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TAPASYA-v3-LockScreenAlarm-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
