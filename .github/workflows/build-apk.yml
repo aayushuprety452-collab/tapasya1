@@ -1,0 +1,444 @@
+name: Build TAPASYA APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Prepare Web Assets and Install Capacitor
+        run: |
+          mkdir -p www
+          cp index.html style.css performance-review.css app.js www/
+          npm install --legacy-peer-deps
+
+      - name: Add Android Platform and Sync
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Generate Native Android Alarm Melodies (.wav in res/raw)
+        run: |
+          mkdir -p android/app/src/main/res/raw
+          python3 - << 'EOF'
+          import wave, struct, math, os
+
+          SR = 22050
+          MELODIES = {
+            "morning_glory": [(523.25,0.22),(659.25,0.22),(783.99,0.22),(1046.5,0.38),(880.0,0.22),(1046.5,0.22),(783.99,0.45)],
+            "morning_flower": [(659.25,0.20),(739.99,0.20),(830.61,0.20),(987.77,0.36),(830.61,0.20),(739.99,0.20),(659.25,0.42)],
+            "homecoming": [(440.0,0.26),(554.37,0.26),(659.25,0.26),(880.0,0.44),(739.99,0.26),(659.25,0.26),(554.37,0.46)],
+            "fireflies": [(523.25,0.18),(659.25,0.18),(783.99,0.18),(1046.5,0.32),(987.77,0.18),(783.99,0.18),(659.25,0.36)],
+            "horizon": [(392.0,0.25),(440.0,0.25),(493.88,0.25),(587.33,0.35),(783.99,0.45),(659.25,0.45)],
+            "betteroff": [(493.88,0.16),(493.88,0.16),(415.3,0.16),(493.88,0.22),(554.37,0.22),(493.88,0.18),(415.3,0.22),(369.99,0.32)],
+            "insomnia": [(329.63,0.15),(329.63,0.15),(493.88,0.22),(493.88,0.15),(523.25,0.22),(493.88,0.18),(440.0,0.18),(392.0,0.28)]
+          }
+
+          for name, seq in MELODIES.items():
+            path = f"android/app/src/main/res/raw/{name}.wav"
+            with wave.open(path, "w") as wf:
+              wf.setnchannels(1)
+              wf.setsampwidth(2)
+              wf.setframerate(SR)
+              for freq, dur in seq:
+                n_samples = int(SR * dur)
+                for i in range(n_samples):
+                  env = min(1.0, i / 400.0) * min(1.0, (n_samples - i) / 600.0)
+                  val = int(28000 * env * math.sin(2 * math.pi * freq * i / SR))
+                  wf.writeframes(struct.pack("<h", val))
+              for _ in range(int(SR * 0.45)):
+                wf.writeframes(struct.pack("<h", 0))
+          EOF
+
+      - name: Inject Native Lock-Screen AlarmActivity, Receiver & Capacitor Plugin
+        run: |
+          PKG_DIR="android/app/src/main/java/com/tapasya/workspace"
+          mkdir -p "$PKG_DIR"
+
+          cat << 'EOF' > "$PKG_DIR/AlarmActivity.java"
+          package com.tapasya.workspace;
+
+          import android.app.Activity;
+          import android.app.AlarmManager;
+          import android.app.KeyguardManager;
+          import android.app.PendingIntent;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
+          import android.media.AudioAttributes;
+          import android.media.MediaPlayer;
+          import android.media.RingtoneManager;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.VibrationEffect;
+          import android.os.Vibrator;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
+          import java.io.File;
+          import java.text.SimpleDateFormat;
+          import java.util.Date;
+          import java.util.Locale;
+
+          public class AlarmActivity extends Activity {
+            private MediaPlayer mediaPlayer;
+            private Vibrator vibrator;
+            private String alarmTitle = "Work";
+            private String alarmTone = "morning_glory";
+            private boolean shouldVibrate = true;
+
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                setShowWhenLocked(true);
+                setTurnScreenOn(true);
+                KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+                if (km != null) km.requestDismissKeyguard(this, null);
+              }
+              getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+              );
+
+              Intent intent = getIntent();
+              if (intent != null) {
+                if (intent.getStringExtra("title") != null) alarmTitle = intent.getStringExtra("title");
+                if (intent.getStringExtra("tone") != null) alarmTone = intent.getStringExtra("tone");
+                shouldVibrate = intent.getBooleanExtra("vibrate", true);
+              }
+
+              buildLockScreenUI();
+              startAlarmSoundAndVibration();
+            }
+
+            private void buildLockScreenUI() {
+              LinearLayout root = new LinearLayout(this);
+              root.setOrientation(LinearLayout.VERTICAL);
+              root.setBackgroundColor(Color.BLACK);
+              root.setGravity(Gravity.CENTER_HORIZONTAL);
+              root.setPadding(48, 120, 48, 110);
+
+              String timeNow = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+              TextView clockTv = new TextView(this);
+              clockTv.setText(timeNow);
+              clockTv.setTextColor(Color.parseColor("#D1D1D6"));
+              clockTv.setTextSize(76);
+              clockTv.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+              clockTv.setGravity(Gravity.CENTER);
+              root.addView(clockTv);
+
+              View spacerTop = new View(this);
+              spacerTop.setLayoutParams(new LinearLayout.LayoutParams(1, 0, 1.0f));
+              root.addView(spacerTop);
+
+              TextView titleTv = new TextView(this);
+              titleTv.setText(alarmTitle);
+              titleTv.setTextColor(Color.WHITE);
+              titleTv.setTextSize(30);
+              titleTv.setTypeface(Typeface.DEFAULT_BOLD);
+              titleTv.setGravity(Gravity.CENTER);
+              LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+              titleLp.bottomMargin = 54;
+              root.addView(titleTv, titleLp);
+
+              Button snoozeBtn = new Button(this);
+              snoozeBtn.setText("Snooze");
+              snoozeBtn.setAllCaps(false);
+              snoozeBtn.setTextColor(Color.WHITE);
+              snoozeBtn.setTextSize(19);
+              snoozeBtn.setTypeface(Typeface.DEFAULT_BOLD);
+              GradientDrawable snoozeBg = new GradientDrawable();
+              snoozeBg.setColor(Color.parseColor("#FFB340"));
+              snoozeBg.setCornerRadius(999f);
+              snoozeBtn.setBackground(snoozeBg);
+              LinearLayout.LayoutParams snoozeLp = new LinearLayout.LayoutParams(540, 148);
+              root.addView(snoozeBtn, snoozeLp);
+
+              View spacerBottom = new View(this);
+              spacerBottom.setLayoutParams(new LinearLayout.LayoutParams(1, 0, 1.2f));
+              root.addView(spacerBottom);
+
+              Button stopBtn = new Button(this);
+              stopBtn.setText("Stop");
+              stopBtn.setAllCaps(false);
+              stopBtn.setTextColor(Color.WHITE);
+              stopBtn.setTextSize(16);
+              stopBtn.setTypeface(Typeface.DEFAULT_BOLD);
+              GradientDrawable stopBg = new GradientDrawable();
+              stopBg.setColor(Color.parseColor("#2C2C2E"));
+              stopBg.setCornerRadius(999f);
+              stopBtn.setBackground(stopBg);
+              LinearLayout.LayoutParams stopLp = new LinearLayout.LayoutParams(320, 122);
+              root.addView(stopBtn, stopLp);
+
+              snoozeBtn.setOnClickListener(v -> {
+                stopMedia();
+                scheduleSnooze();
+                finish();
+              });
+
+              stopBtn.setOnClickListener(v -> {
+                stopMedia();
+                finish();
+              });
+
+              setContentView(root);
+            }
+
+            private void startAlarmSoundAndVibration() {
+              try {
+                mediaPlayer = new MediaPlayer();
+                AudioAttributes attrs = new AudioAttributes.Builder()
+                  .setUsage(AudioAttributes.USAGE_ALARM)
+                  .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                  .build();
+                mediaPlayer.setAudioAttributes(attrs);
+
+                File customFile = new File(getFilesDir(), "tapasya_custom_alarm.audio");
+                if ("custom".equals(alarmTone) && customFile.exists()) {
+                  mediaPlayer.setDataSource(customFile.getAbsolutePath());
+                } else {
+                  int resId = getResources().getIdentifier(alarmTone, "raw", getPackageName());
+                  if (resId == 0) resId = getResources().getIdentifier("morning_glory", "raw", getPackageName());
+                  if (resId != 0) {
+                    Uri rawUri = Uri.parse("android.resource://" + getPackageName() + "/" + resId);
+mediaPlayer.setDataSource(this, rawUri);
+} else {
+Uri defUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+mediaPlayer.setDataSource(this, defUri);
+}
+}
+mediaPlayer.setLooping(true);
+mediaPlayer.prepare();
+mediaPlayer.start();
+} catch (Exception e) {
+try {
+Uri fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+mediaPlayer = MediaPlayer.create(this, fallback);
+if (mediaPlayer != null) {
+mediaPlayer.setLooping(true);
+mediaPlayer.start();
+}
+} catch (Exception ignored) {}
+}
+if (shouldVibrate) {
+vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+if (vibrator != null) {
+long[] pattern = new long[]{0, 800, 400, 800, 600};
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0));
+} else {
+vibrator.vibrate(pattern, 0);
+}
+}
+}
+}
+private void scheduleSnooze() {
+try {
+AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+Intent intent = new Intent(this, AlarmReceiver.class);
+intent.putExtra("title", alarmTitle);
+intent.putExtra("tone", alarmTone);
+intent.putExtra("vibrate", shouldVibrate);
+PendingIntent pi = PendingIntent.getBroadcast(
+this, 99991, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+long triggerAt = System.currentTimeMillis() + 5 * 60 * 1000L;
+if (am != null) {
+am.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerAt, pi), pi);
+}
+} catch (Exception ignored) {}
+}
+private void stopMedia() {
+if (mediaPlayer != null) {
+try { mediaPlayer.stop(); mediaPlayer.release(); } catch (Exception ignored) {}
+mediaPlayer = null;
+}
+if (vibrator != null) {
+try { vibrator.cancel(); } catch (Exception ignored) {}
+}
+}
+@Override
+protected void onDestroy() {
+stopMedia();
+super.onDestroy();
+}
+}
+EOF
+cat << 'EOF' > "$PKG_DIR/AlarmReceiver.java"
+package com.tapasya.workspace;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import androidx.core.app.NotificationCompat;
+public class AlarmReceiver extends BroadcastReceiver {
+@Override
+public void onReceive(Context context, Intent intent) {
+String title = intent.getStringExtra("title");
+if (title == null) title = "Work";
+String tone = intent.getStringExtra("tone");
+if (tone == null) tone = "morning_glory";
+boolean vibrate = intent.getBooleanExtra("vibrate", true);
+Intent fullScreenIntent = new Intent(context, AlarmActivity.class);
+fullScreenIntent.putExtra("title", title);
+fullScreenIntent.putExtra("tone", tone);
+fullScreenIntent.putExtra("vibrate", vibrate);
+fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+PendingIntent fullScreenPendingIntent = PendingIntent.getActivity(
+context, (int) System.currentTimeMillis(), fullScreenIntent,
+PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+String channelId = "tapasya_fullscreen_alarms";
+NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+if (nm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+NotificationChannel ch = new NotificationChannel(
+channelId, "TAPASYA Lock-Screen Alarms", NotificationManager.IMPORTANCE_HIGH);
+ch.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+ch.setBypassDnd(true);
+nm.createNotificationChannel(ch);
+}
+NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
+.setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+.setContentTitle("TAPASYA Alarm")
+.setContentText(title)
+.setPriority(NotificationCompat.PRIORITY_MAX)
+.setCategory(NotificationCompat.CATEGORY_ALARM)
+.setAutoCancel(true)
+.setFullScreenIntent(fullScreenPendingIntent, true);
+if (nm != null) nm.notify((int) (System.currentTimeMillis() % 100000), builder.build());
+try {
+context.startActivity(fullScreenIntent);
+} catch (Exception ignored) {}
+}
+}
+EOF
+cat << 'EOF' > "$PKG_DIR/TapasyaAlarmPlugin.java"
+package com.tapasya.workspace;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+@CapacitorPlugin(name = "TapasyaAlarm")
+public class TapasyaAlarmPlugin extends Plugin {
+@PluginMethod
+public void scheduleAlarm(PluginCall call) {
+int id = call.getInt("id", 1001);
+String title = call.getString("title", "Work");
+long triggerAt = call.getLong("triggerAtMillis", System.currentTimeMillis() + 60000L);
+String tone = call.getString("tone", "morning_glory");
+boolean vibrate = call.getBoolean("vibrate", true);
+Context ctx = getContext();
+AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+Intent intent = new Intent(ctx, AlarmReceiver.class);
+intent.putExtra("title", title);
+intent.putExtra("tone", tone);
+intent.putExtra("vibrate", vibrate);
+PendingIntent pi = PendingIntent.getBroadcast(
+ctx, id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+if (am != null) {
+am.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerAt, pi), pi);
+}
+call.resolve();
+}
+@PluginMethod
+public void testNow(PluginCall call) {
+String title = call.getString("title", "Work");
+String tone = call.getString("tone", "morning_glory");
+boolean vibrate = call.getBoolean("vibrate", true);
+Intent i = new Intent(getContext(), AlarmActivity.class);
+i.putExtra("title", title);
+i.putExtra("tone", tone);
+i.putExtra("vibrate", vibrate);
+i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+getContext().startActivity(i);
+call.resolve();
+}
+@PluginMethod
+public void openAlarmSettings(PluginCall call) {
+Context ctx = getContext();
+try {
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+Intent i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+i.setData(Uri.parse("package:" + ctx.getPackageName()));
+i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+ctx.startActivity(i);
+} else {
+Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+i.setData(Uri.parse("package:" + ctx.getPackageName()));
+i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+ctx.startActivity(i);
+}
+} catch (Exception e) {
+Intent i = new Intent(Settings.ACTION_SETTINGS);
+i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+ctx.startActivity(i);
+}
+call.resolve();
+}
+}
+EOF
+cat << 'EOF' > "$PKG_DIR/MainActivity.java"
+package com.tapasya.workspace;
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+public class MainActivity extends BridgeActivity {
+@Override
+public void onCreate(Bundle savedInstanceState) {
+registerPlugin(TapasyaAlarmPlugin.class);
+super.onCreate(savedInstanceState);
+}
+}
+EOF
+- name: Configure AndroidManifest for Lock-Screen AlarmActivity & Receiver
+run: |
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+sed -i 's/<uses-permission android:name="android.permission.INTERNET" />/<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />\n    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />/' "$MANIFEST"
+sed -i 's/</application>/    <activity android:name=".AlarmActivity" android:exported="true" android:showWhenLocked="true" android:turnScreenOn="true" android:launchMode="singleInstance" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />\n        <receiver android:name=".AlarmReceiver" android:enabled="true" android:exported="true" />\n    </application>/' "$MANIFEST"
+- name: Build Debug APK
+run: |
+cd android
+chmod +x gradlew
+./gradlew assembleDebug
+- name: Upload APK Artifact
+uses: actions/upload-artifact@v4
+with:
+name: TAPASYA-v3-LockScreenAlarm-APK
+path: android/app/build/outputs/apk/debug/app-debug.apk
